@@ -12,9 +12,7 @@ from config import WIN_REWARD
 class Trainer:
     """Фреймворк для обучения RL агентов."""
 
-    def __init__(
-        self, env: TicTacToe3DEnv, agent: RLAgent, opponent: Optional[RLAgent] = None
-    ):
+    def __init__(self, env: TicTacToe3DEnv, agent: RLAgent, opponent: Optional[RLAgent] = None):
         """
         Инициализация.
 
@@ -60,6 +58,7 @@ class Trainer:
             state = self.env.reset()
             done = False
             episode_reward = 0
+            rewards = []
             steps = 0
 
             # Randomly decide who goes first
@@ -80,16 +79,12 @@ class Trainer:
 
                 # Update agent if it's the one who moved
                 if current_player == self.agent:
-                    loss = self.agent.update(
-                        state, action, reward, next_state, done, player_symbol
-                    )
+                    loss = self.agent.update(state, action, reward, next_state, done, player_symbol)
                     episode_reward += reward
                 else:
                     # If opponent won, it's a loss for the agent
                     if reward > 1:
-                        episode_reward = max(
-                            0, episode_reward - self.env.game.steps * 5
-                        )
+                        episode_reward = max(0, episode_reward - self.env.game.steps * 5)
 
                 # Switch player for next turn
                 player_idx = (player_idx + 1) % 2
@@ -118,9 +113,7 @@ class Trainer:
 
             # Evaluate periodically
             if (episode + 1) % eval_every == 0:
-                win_rate, draw_rate, loss_rate, avg_steps = self._evaluate(
-                    eval_episodes
-                )
+                win_rate, draw_rate, loss_rate, avg_steps = self._evaluate(eval_episodes)
                 self.agent.metrics["win_rate"].append(win_rate)
                 self.agent.metrics["draw_rate"].append(draw_rate)
                 self.agent.metrics["loss_rate"].append(loss_rate)
@@ -129,11 +122,12 @@ class Trainer:
                 if verbose:
                     elapsed = time.time() - start_time
                     print(
-                        f"Episode {episode+1}/{episodes} | "
+                        f"Episode {episode + 1}/{episodes} | "
                         + f"Win rate: {win_rate:.2f} | "
                         + f"Draw rate: {draw_rate:.2f} | "
                         + f"Loss rate: {loss_rate:.2f} | "
                         + f"Avg steps: {avg_steps:.2f} | "
+                        + f"Avg reward: {np.array(self.agent.metrics['episode_rewards'])[:-eval_every].mean():.2f} | "
                         + f"Epsilon: {self.agent.epsilon:.3f} | "
                         + f"Time: {elapsed:.1f}s"
                     )
@@ -147,9 +141,7 @@ class Trainer:
             "episodes": episodes,
             "training_time": training_time,
             "final_win_rate": (
-                self.agent.metrics["win_rate"][-1]
-                if self.agent.metrics["win_rate"]
-                else 0
+                self.agent.metrics["win_rate"][-1] if self.agent.metrics["win_rate"] else 0
             ),
             "final_epsilon": self.agent.epsilon,
             "metrics": self.agent.metrics,
@@ -235,9 +227,7 @@ class Trainer:
                         state, action, adjusted_reward, next_state, False, player
                     )
                 else:
-                    loss = self.agent.update(
-                        state, action, adjusted_reward, state, True, player
-                    )
+                    loss = self.agent.update(state, action, adjusted_reward, state, True, player)
 
                 loss_sum += loss
 
@@ -247,9 +237,7 @@ class Trainer:
 
             # Evaluate periodically
             if (episode + 1) % eval_every == 0:
-                win_rate, draw_rate, loss_rate, avg_steps = self._evaluate(
-                    eval_episodes
-                )
+                win_rate, draw_rate, loss_rate, avg_steps = self._evaluate(eval_episodes)
                 self.agent.metrics["win_rate"].append(win_rate)
                 self.agent.metrics["draw_rate"].append(draw_rate)
                 self.agent.metrics["loss_rate"].append(loss_rate)
@@ -258,7 +246,7 @@ class Trainer:
                 if verbose:
                     elapsed = time.time() - start_time
                     print(
-                        f"Episode {episode+1}/{episodes} | "
+                        f"Episode {episode + 1}/{episodes} | "
                         + f"Win rate: {win_rate:.2f} | "
                         + f"Draw rate: {draw_rate:.2f} | "
                         + f"Loss rate: {loss_rate:.2f} | "
@@ -276,9 +264,7 @@ class Trainer:
             "episodes": episodes,
             "training_time": training_time,
             "final_win_rate": (
-                self.agent.metrics["win_rate"][-1]
-                if self.agent.metrics["win_rate"]
-                else 0
+                self.agent.metrics["win_rate"][-1] if self.agent.metrics["win_rate"] else 0
             ),
             "final_epsilon": self.agent.epsilon,
             "metrics": self.agent.metrics,
@@ -408,9 +394,7 @@ class Trainer:
         if metrics["loss"]:
             # Smooth loss curve
             loss_x = np.linspace(0, episodes, len(metrics["loss"]))
-            window_size = (
-                min(100, len(metrics["loss"]) // 10) if len(metrics["loss"]) > 0 else 1
-            )
+            window_size = min(100, len(metrics["loss"]) // 10) if len(metrics["loss"]) > 0 else 1
             loss_smoothed = np.convolve(
                 metrics["loss"], np.ones(window_size) / window_size, mode="valid"
             )
@@ -471,7 +455,7 @@ class Evaluator:
 
         for episode in range(episodes):
             if render:
-                print(f"\nGame {episode+1}/{episodes}: {agent1.name} vs {agent2.name}")
+                print(f"\nGame {episode + 1}/{episodes}: {agent1.name} vs {agent2.name}")
 
             state = self.env.reset()
             done = False
@@ -626,11 +610,7 @@ class Evaluator:
 
         print(f"\n====== Human vs {agent.name} ======")
         print("Board coordinates: (x, y) where x and y are 0-2")
-        print(
-            "Human: X (1), Agent: O (-1)"
-            if human_first
-            else "Agent: X (1), Human: O (-1)"
-        )
+        print("Human: X (1), Agent: O (-1)" if human_first else "Agent: X (1), Human: O (-1)")
         print()
 
         self.env.render()
@@ -654,7 +634,7 @@ class Evaluator:
                         x, y = map(int, move.strip().split())
 
                         if not (0 <= x < self.env.n and 0 <= y < self.env.n):
-                            print(f"Coordinates must be between 0 and {self.env.n-1}")
+                            print(f"Coordinates must be between 0 and {self.env.n - 1}")
                             continue
 
                         action = x * self.env.n + y
@@ -685,9 +665,7 @@ class Evaluator:
             # Check for game end
             if done:
                 if "error" in info:
-                    print(
-                        f"\nInvalid move by {'human' if current_player == 'human' else 'agent'}!"
-                    )
+                    print(f"\nInvalid move by {'human' if current_player == 'human' else 'agent'}!")
                     print(f"{'Agent' if current_player == 'human' else 'You'} win!")
                 elif reward == WIN_REWARD:
                     print(f"\n{'You' if current_player == 'human' else 'Agent'} win!")

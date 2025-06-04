@@ -6,7 +6,12 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "gym>=0.26.2",
+    "gymnasium>=1.1.1",
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.3",
+    "numpy>=2.2.6",
+    "shimmy>=2.0",
+    "stable-baselines3[extra]>=2.6.0",
+    "standard-imghdr>=3.13.0",
     "torch>=2.7.0",
 ]
